@@ -23,9 +23,9 @@ jobs:
         run: |
           set -e
           echo "Checking Python files for syntax errors..."
-          
+
           FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.py$' || true)
-          
+
           if [ -z "$FILES" ]; then
             echo "No Python files to check."
           else
