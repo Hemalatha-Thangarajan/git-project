@@ -172,3 +172,158 @@ def get_errors():
 if __name__ == "__main__":
     logging.info("Starting Flask GitHub App Listener on port 5000")
     app.run(port=5000, debug=True)
+
+# import os
+# import hmac
+# import hashlib
+# import subprocess
+# import tempfile
+# import shutil
+# import stat
+# import logging
+# from flask import Flask, request, jsonify, abort
+# from dotenv import load_dotenv
+
+# # Import Rule Engine + NLP
+# from rule_engine1 import RuleEngine
+# from nlp import vector_nlp_project_chatbot
+
+# # ---------------- Logging Setup ----------------
+# logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+
+# # ---------------- Flask Setup ----------------
+# load_dotenv()
+# app = Flask(__name__)
+
+# APP_ID = os.getenv("APP_ID")
+# WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "").encode()
+
+
+# # ---------------- Utility Functions ----------------
+# def verify_signature(payload, signature_header):
+#     """Verify webhook signature from GitHub."""
+#     if not WEBHOOK_SECRET:
+#         logging.warning("No WEBHOOK_SECRET set, skipping signature verification.")
+#         return True
+
+#     sha_name, signature = signature_header.split("=")
+#     mac = hmac.new(WEBHOOK_SECRET, msg=payload, digestmod=hashlib.sha256)
+#     expected_signature = mac.hexdigest()
+#     return hmac.compare_digest(expected_signature, signature)
+
+
+# def safe_rmtree(path):
+#     """Force delete directory."""
+#     def handle_remove_readonly(func, path, _):
+#         os.chmod(path, stat.S_IWRITE)
+#         func(path)
+
+#     shutil.rmtree(path, onerror=handle_remove_readonly)
+
+
+# def run_rule_engine_on_repo(temp_dir):
+#     """Run RuleEngine on a repo directory."""
+#     engine = RuleEngine()
+#     results = engine.run(temp_dir)
+#     engine.print_results(results)  # console output
+#     return [vars(r) for r in results]  # JSON-friendly
+
+
+# # ---------------- Handlers ----------------
+# def handle_push(payload):
+#     repo_url = payload["repository"]["clone_url"]
+#     logging.info(f"Received push event from repo: {repo_url}")
+
+#     temp_dir = tempfile.mkdtemp()
+#     logging.info(f"Cloning repository into {temp_dir}")
+#     subprocess.run(["git", "clone", repo_url, temp_dir], check=True)
+
+#     errors = []
+
+#     # Step 1: Python syntax check
+#     for root, _, files in os.walk(temp_dir):
+#         for file in files:
+#             if file.endswith(".py"):
+#                 filepath = os.path.join(root, file)
+#                 logging.info(f"Checking {filepath}")
+#                 result = subprocess.run(["python", "-m", "py_compile", filepath],
+#                                         capture_output=True, text=True)
+#                 if result.returncode != 0:
+#                     errors.append({"file": filepath, "error": result.stderr})
+
+#     # Step 2: Run Rule Engine on XMLs
+#     rule_results = run_rule_engine_on_repo(temp_dir)
+
+#     safe_rmtree(temp_dir)
+
+#     return jsonify({
+#         "status": "push checked",
+#         "python_errors": errors,
+#         "rule_engine_results": rule_results
+#     }), 200
+
+# def handle_pull_request(payload):
+#     action = payload["action"]
+#     pr_number = payload["number"]
+#     repo_url = payload["repository"]["clone_url"]
+#     logging.info(f"PR #{pr_number} {action} on repo {repo_url}")
+
+#     temp_dir = tempfile.mkdtemp()
+#     subprocess.run(["git", "clone", repo_url, temp_dir], check=True)
+
+#     errors = []
+#     for root, _, files in os.walk(temp_dir):
+#         for file in files:
+#             if file.endswith(".py"):
+#                 filepath = os.path.join(root, file)
+#                 result = subprocess.run(["python", "-m", "py_compile", filepath],
+#                                         capture_output=True, text=True)
+#                 if result.returncode != 0:
+#                     errors.append({"file": filepath, "error": result.stderr})
+
+#     # Run Rule Engine
+#     rule_results = run_rule_engine_on_repo(temp_dir)
+
+#     safe_rmtree(temp_dir)
+
+#     return jsonify({
+#         "status": f"pull_request {action}",
+#         "python_errors": errors,
+#         "rule_engine_results": rule_results
+#     }), 200
+
+
+# # ---------------- Routes ----------------
+# @app.route("/webhook", methods=["POST"])
+# def webhook():
+#     payload = request.data
+#     signature = request.headers.get("X-Hub-Signature-256")
+
+#     if not verify_signature(payload, signature):
+#         abort(403, "Invalid signature")
+
+#     event = request.headers.get("X-GitHub-Event")
+#     payload_json = request.get_json()
+#     if event == "push":
+#         return handle_push(payload_json)
+#     elif event == "pull_request":
+#         return handle_pull_request(payload_json)
+#     else:
+#         return jsonify({"status": "ignored", "event": event}), 200
+
+
+# @app.route("/nlp-check", methods=["POST"])
+# def nlp_check():
+#     """Manual NLP rule check (e.g., via curl/postman)."""
+#     data = request.json
+#     project_dir = data.get("project_dir", ".")
+#     query = data.get("query", "Check if JDBC connections are secure")
+
+#     logging.info(f"Running NLP chatbot on {project_dir} with query: {query}")
+#     results = vector_nlp_project_chatbot(project_dir, top_k_rules=2)
+#     return jsonify({"query": query, "results": results})
+
+# # ---------------- Main ----------------
+# if __name__ == "__main__":
+#     logging.info("Starting Flask GitHub App Listener on port 5000")
+#     app.run(host="0.0.0.0", port=5000, debug=True)

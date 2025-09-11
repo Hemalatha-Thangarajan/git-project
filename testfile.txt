@@ -1,3 +1,0 @@
-This is the test file to test the push request..
-Check and update soon
-Let us find the push event triggered...
