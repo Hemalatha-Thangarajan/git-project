@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<processDefinition name="OrderProcess">
+    <activities>
+        <jdbcActivity name="SelectCustomer">
+            <username>admin</username> <!-- ❌ Hardcoded username -->
+            <password></password>      <!-- ❌ Empty password -->
+            <timeout></timeout>        <!-- ❌ Missing timeout value -->
+        </jdbcActivity>
+       
+    </activities>
+</processDefinition>
